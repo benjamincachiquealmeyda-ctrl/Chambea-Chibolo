@@ -1510,7 +1510,7 @@
             <img class="brand-mark" src="/logo.png" alt="Logo de Chambea Chibolo" />
             <span>Chambea Chibolo</span>
           </div>
-
+          <a class="nav-btn" href="/contacto">Contáctanos</a>
         </div>
       </header>
 
@@ -1824,34 +1824,6 @@
           </div>
         </section>
 
-        <section class="cta" id="contacto">
-          <div class="container">
-            <div class="support-box">
-              <div class="support-copy">
-                <h3>Contáctanos</h3>
-                <p>Cuéntanos tu queja, duda o error. El mensaje se preparará para enviarlo al equipo de Chambea Chibolo.</p>
-              </div>
-              <form class="support-form" id="supportForm">
-                <label for="supportName">Tu nombre</label>
-                <input id="supportName" name="name" type="text" placeholder="Escribe tu nombre" required />
-                <label for="supportEmail">Tu correo</label>
-                <input id="supportEmail" name="email" type="email" placeholder="tucorreo@ejemplo.com" required />
-                <label for="supportType">Motivo</label>
-                <select id="supportType" name="type" required>
-                  <option value="">Selecciona una opción</option>
-                  <option value="Queja">Queja</option>
-                  <option value="Error técnico">Error técnico</option>
-                  <option value="Consulta">Consulta</option>
-                  <option value="Otro">Otro</option>
-                </select>
-                <label for="supportMessage">Mensaje</label>
-                <textarea id="supportMessage" name="message" placeholder="Describe lo ocurrido" required></textarea>
-                <button class="btn btn-primary" type="submit">Enviar a soporte</button>
-                <p class="support-status" id="supportStatus" aria-live="polite"></p>
-              </form>
-            </div>
-          </div>
-        </section>
         <datalist id="peruRegions">
           <option value="Amazonas"></option>
           <option value="Áncash"></option>
@@ -2151,7 +2123,7 @@
                   <small>${job.category}</small>
                   ${job.tipo === 'empresa'
                     ? `<div style="display:flex; gap:8px; flex-wrap: wrap; justify-content:flex-end;">${deleteButton}</div>`
-                    : '<a class="job-cta" href="#contacto">Aplicar</a>'}
+                    : '<a class="job-cta" href="/contacto">Aplicar</a>'}
                 </div>
               </article>
             `;
@@ -2965,30 +2937,6 @@
           }
         }
       });
-
-      const supportForm = document.getElementById('supportForm');
-      const supportStatus = document.getElementById('supportStatus');
-      if (supportForm) {
-        supportForm.addEventListener('submit', async (event) => {
-          event.preventDefault();
-          const formData = new FormData(supportForm);
-          if (supportStatus) supportStatus.textContent = 'Enviando reporte...';
-
-          try {
-            const response = await fetch(`${getApiBase()}/api/contacto`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(Object.fromEntries(formData.entries()))
-            });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.message || 'No se pudo enviar el reporte.');
-            supportForm.reset();
-            if (supportStatus) supportStatus.textContent = 'Reporte enviado correctamente a soporte.';
-          } catch (error) {
-            if (supportStatus) supportStatus.textContent = error.message || 'No se pudo enviar el reporte.';
-          }
-        });
-      }
 
       showCatalogFromRequests();
       if (storedName) {

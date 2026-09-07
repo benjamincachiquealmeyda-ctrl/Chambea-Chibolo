@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contáctanos | Chambea Chibolo</title>
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <style>
+      * { box-sizing: border-box; }
+      :root {
+        --bg: #f7f0e6;
+        --panel: #fffdf9;
+        --primary: #ff8c42;
+        --primary-dark: #e76f31;
+        --text: #1c2432;
+        --muted: #5d6777;
+        --line: rgba(28, 36, 50, 0.12);
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Arial, Helvetica, sans-serif;
+        color: var(--text);
+        background: linear-gradient(180deg, #f8f3ec 0%, #efe1d0 100%);
+      }
+      header {
+        border-bottom: 1px solid var(--line);
+        background: rgba(248, 243, 236, 0.9);
+      }
+      .nav, .container { width: min(960px, calc(100% - 32px)); margin: 0 auto; }
+      .nav {
+        min-height: 74px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; }
+      .brand-mark { width: 42px; height: 42px; object-fit: contain; border-radius: 8px; }
+      .back-link { color: var(--muted); font-weight: 700; }
+      main { padding: 64px 0 88px; }
+      .contact-layout {
+        display: grid;
+        grid-template-columns: 0.8fr 1.2fr;
+        gap: 28px;
+        align-items: start;
+      }
+      .intro h1 { margin: 0 0 16px; font-size: clamp(2.4rem, 6vw, 4.4rem); line-height: 0.98; letter-spacing: -0.06em; }
+      .intro p { margin: 0; color: var(--muted); line-height: 1.7; }
+      .form-panel { padding: 26px; border: 1px solid var(--line); border-radius: 24px; background: var(--panel); box-shadow: 0 20px 42px rgba(24, 36, 60, 0.08); }
+      form { display: grid; gap: 10px; }
+      label { color: var(--muted); font-size: 0.74rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+      input, select, textarea { width: 100%; padding: 13px 14px; border: 1px solid var(--line); border-radius: 12px; background: white; font: inherit; margin-bottom: 8px; }
+      textarea { min-height: 150px; resize: vertical; }
+      button { border: 0; cursor: pointer; }
+      .btn { display: inline-flex; justify-content: center; padding: 14px 22px; border-radius: 14px; font-weight: 800; }
+      .btn-primary { color: white; background: linear-gradient(135deg, var(--primary), #ffb45a); }
+      .status { min-height: 22px; margin: 4px 0 0; color: var(--muted); }
+      @media (max-width: 720px) {
+        main { padding-top: 36px; }
+        .contact-layout { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="nav">
+        <div class="brand">
+          <img class="brand-mark" src="/logo.png" alt="Logo de Chambea Chibolo" />
+          <span>Chambea Chibolo</span>
+        </div>
+        <a class="back-link" href="/">Volver al inicio</a>
+      </div>
+    </header>
+    <main>
+      <div class="container contact-layout">
+        <section class="intro">
+          <h1>Contáctanos</h1>
+          <p>Cuéntanos tu queja, duda o error. Tu mensaje será enviado al equipo de Chambea Chibolo.</p>
+        </section>
+        <section class="form-panel">
+          <form id="supportForm">
+            <label for="supportName">Tu nombre</label>
+            <input id="supportName" name="name" type="text" placeholder="Escribe tu nombre" required />
+            <label for="supportEmail">Tu correo</label>
+            <input id="supportEmail" name="email" type="email" placeholder="tucorreo@ejemplo.com" required />
+            <label for="supportType">Motivo</label>
+            <select id="supportType" name="type" required>
+              <option value="">Selecciona una opción</option>
+              <option value="Queja">Queja</option>
+              <option value="Error técnico">Error técnico</option>
+              <option value="Consulta">Consulta</option>
+              <option value="Otro">Otro</option>
+            </select>
+            <label for="supportMessage">Mensaje</label>
+            <textarea id="supportMessage" name="message" placeholder="Describe lo ocurrido" required></textarea>
+            <button class="btn btn-primary" type="submit">Enviar a soporte</button>
+            <p class="status" id="supportStatus" aria-live="polite"></p>
+          </form>
+        </section>
+      </div>
+    </main>
+    <script>
+      const supportForm = document.getElementById('supportForm');
+      const supportStatus = document.getElementById('supportStatus');
+      supportForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        supportStatus.textContent = 'Enviando reporte...';
+        try {
+          const response = await fetch('/api/contacto', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(Object.fromEntries(new FormData(supportForm).entries()))
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.message || 'No se pudo enviar el reporte.');
+          supportForm.reset();
+          supportStatus.textContent = 'Reporte enviado correctamente a soporte.';
+        } catch (error) {
+          supportStatus.textContent = error.message || 'No se pudo enviar el reporte.';
+        }
+      });
+    </script>
+  </body>
+</html>

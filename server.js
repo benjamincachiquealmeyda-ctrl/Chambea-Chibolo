@@ -8,6 +8,7 @@ const HOST = '0.0.0.0';
 const DATA_FILE = path.join(__dirname, 'solicitudes.json');
 const CHAT_FILE = path.join(__dirname, 'chat.json');
 const HTML_FILE = path.join(__dirname, 'index.html');
+const CONTACT_HTML_FILE = path.join(__dirname, 'contact.html');
 const LOGO_FILE = path.join(__dirname, 'Logo Estilista Minimalista Dorado y Beige.png');
 const eventClients = new Map();
 
@@ -31,6 +32,17 @@ function readHtml(req, res) {
   fs.readFile(HTML_FILE, 'utf8', (err, html) => {
     if (err) {
       sendJson(res, 500, { message: 'No se pudo cargar la página.' });
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(html);
+  });
+}
+
+function readContactHtml(req, res) {
+  fs.readFile(CONTACT_HTML_FILE, 'utf8', (err, html) => {
+    if (err) {
+      sendJson(res, 500, { message: 'No se pudo cargar la página de contacto.' });
       return;
     }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -97,6 +109,11 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === 'GET' && req.url === '/') {
     readHtml(req, res);
+    return;
+  }
+
+  if (req.method === 'GET' && req.url === '/contacto') {
+    readContactHtml(req, res);
     return;
   }
 
