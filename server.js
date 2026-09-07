@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const nodemailer = require('nodemailer');
 
 const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0';
@@ -244,6 +245,50 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, mensajes);
     } catch (error) {
       sendJson(res, 500, { message: 'No se pudieron leer los mensajes.' });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/api/contacto') {
+    try {
+      const data = await parseRequestBody(req);
+      const name = String(data.name || '').trim();
+      const email = String(data.email || '').trim();
+      const type = String(data.type || '').trim();
+      const message = String(data.message || '').trim();
+      const supportEmail = process.env.SUPPORT_EMAIL || 'benjamin.cachique.almeyda@gmail.com';
+
+      if (!name || !email || !type || !message) {
+        sendJson(res, 400, { message: 'Completa todos los campos del formulario.' });
+        return;
+      }
+
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        sendJson(res, 503, { message: 'Falta configurar el correo SMTP del servidor.' });
+        return;
+      }
+
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: Number(process.env.SMTP_PORT || 465),
+        secure: String(process.env.SMTP_PORT || 465) === '465',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        }
+      });
+
+      await transporter.sendMail({
+        from: process.env.SMTP_USER,
+        to: supportEmail,
+        replyTo: email,
+        subject: `${type} - Chambea Chibolo`,
+        text: `Nombre: ${name}\nCorreo de respuesta: ${email}\nMotivo: ${type}\n\n${message}`
+      });
+
+      sendJson(res, 200, { ok: true, message: 'Reporte enviado correctamente.' });
+    } catch (error) {
+      sendJson(res, 500, { message: 'No se pudo enviar el reporte.', error: error.message });
     }
     return;
   }
