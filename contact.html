@@ -114,7 +114,7 @@
             body: JSON.stringify(Object.fromEntries(new FormData(supportForm).entries()))
           });
           const result = await response.json();
-          if (!response.ok) throw new Error(result.message || 'No se pudo enviar el reporte.');
+          if (!response.ok) throw new Error(result.error || result.message || 'No se pudo enviar el reporte.');
           supportForm.reset();
           supportStatus.textContent = 'Reporte enviado correctamente a soporte.';
         } catch (error) {
