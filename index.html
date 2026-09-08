@@ -161,27 +161,6 @@
         border: 1px solid var(--line);
       }
 
-      .stats {
-        display: flex;
-        gap: 22px;
-        flex-wrap: wrap;
-        margin-top: 30px;
-      }
-
-      .stat {
-        min-width: 130px;
-      }
-
-      .stat strong {
-        display: block;
-        font-size: 1.9rem;
-        letter-spacing: -0.06em;
-      }
-
-      .stat span {
-        color: var(--muted);
-      }
-
       .intro-info {
         margin-top: 34px;
       }
@@ -1383,15 +1362,6 @@
           min-width: 0;
         }
 
-        .stats {
-          gap: 14px;
-        }
-
-        .stat {
-          min-width: 0;
-          flex: 1 1 40%;
-        }
-
         .showcase {
           min-height: 260px;
           max-width: 100%;
@@ -1573,21 +1543,6 @@
                 Una plataforma pensada para que los adolescentes busquen su primer empleo y para
                 que los negocios encuentren mano de obra responsable, cercana y motivada.
               </p>
-
-              <div class="stats">
-                <div class="stat">
-                  <strong id="activeRequestsStat">0</strong>
-                  <span>solicitudes activas</span>
-                </div>
-                <div class="stat">
-                  <strong id="activeBusinessesStat">0</strong>
-                  <span>negocios activos</span>
-                </div>
-                <div class="stat">
-                  <strong>Siempre</strong>
-                  <span>disponibilidad</span>
-                </div>
-              </div>
 
               <div class="intro-info">
                 <h2>¿Cómo funciona Chambea Chibolo?</h2>
@@ -1964,24 +1919,6 @@
         }
 
         return currentOrigin;
-      }
-
-      async function updateStatsFromCatalog() {
-        try {
-          const response = await fetch(`${getApiBase()}/api/solicitudes`, { cache: 'no-store' });
-          if (!response.ok) return;
-          const requests = await response.json();
-          const entries = Array.isArray(requests) ? requests : [];
-          const requestsStat = document.getElementById('activeRequestsStat');
-          const businessesStat = document.getElementById('activeBusinessesStat');
-
-          if (requestsStat) requestsStat.textContent = String(entries.length);
-          if (businessesStat) {
-            businessesStat.textContent = String(entries.filter((request) => request.tipo === 'empresa').length);
-          }
-        } catch (error) {
-          console.warn('No se pudieron actualizar los indicadores.', error);
-        }
       }
 
       function escapeAttribute(value) {
@@ -2439,7 +2376,7 @@
       }
 
       if (loginForm) {
-        loginForm.addEventListener('submit', (event) => {
+        loginForm.addEventListener('submit', async (event) => {
           event.preventDefault();
           const profile = {
             name: document.getElementById('loginName').value.trim(),
@@ -2453,7 +2390,19 @@
             return;
           }
 
-          closeLoginGate(profile);
+          if (loginStatus) loginStatus.textContent = 'Guardando perfil...';
+          try {
+            const response = await fetch(`${getApiBase()}/api/usuarios`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(profile)
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.message || 'No se pudo guardar el perfil.');
+            closeLoginGate(profile);
+          } catch (error) {
+            if (loginStatus) loginStatus.textContent = error.message || 'No se pudo guardar el perfil.';
+          }
         });
       }
 
@@ -3025,7 +2974,6 @@
       });
 
       showCatalogFromRequests();
-      updateStatsFromCatalog();
       if (storedName) {
         loadRequests();
         loadRecentMessages();

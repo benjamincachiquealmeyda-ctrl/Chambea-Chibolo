@@ -7,6 +7,7 @@ const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0';
 const DATA_FILE = path.join(__dirname, 'solicitudes.json');
 const CHAT_FILE = path.join(__dirname, 'chat.json');
+const USERS_FILE = path.join(__dirname, 'usuarios.json');
 const HTML_FILE = path.join(__dirname, 'index.html');
 const CONTACT_HTML_FILE = path.join(__dirname, 'contact.html');
 const LOGO_FILE = path.join(__dirname, 'Logo Estilista Minimalista Dorado y Beige.png');
@@ -21,6 +22,7 @@ function ensureFile(filePath, defaultContent = '[]') {
 function ensureDataFiles() {
   ensureFile(DATA_FILE);
   ensureFile(CHAT_FILE);
+  ensureFile(USERS_FILE);
 }
 
 function sendJson(res, statusCode, data) {
@@ -243,6 +245,44 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, solicitudes.map(toPublicRequest));
     } catch (error) {
       sendJson(res, 500, { message: 'No se pudieron leer las solicitudes.' });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/api/usuarios') {
+    try {
+      const data = await parseRequestBody(req);
+      const name = String(data.name || '').trim();
+      const google = String(data.google || '').trim().toLowerCase();
+      const age = String(data.age || '').trim();
+      const city = String(data.city || '').trim();
+
+      if (!name || !google || !age || !city || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(google)) {
+        sendJson(res, 400, { message: 'Los datos del perfil no son válidos.' });
+        return;
+      }
+
+      const usuarios = readJson(USERS_FILE);
+      const record = {
+        id: `user-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+        nombre: name,
+        correo: google,
+        edad: age,
+        ciudad: city,
+        ultimoIngreso: new Date().toISOString()
+      };
+      const existingIndex = usuarios.findIndex((user) => String(user.correo || '').toLowerCase() === google);
+
+      if (existingIndex === -1) {
+        usuarios.push(record);
+      } else {
+        usuarios[existingIndex] = { ...usuarios[existingIndex], ...record, id: usuarios[existingIndex].id };
+      }
+
+      writeJson(USERS_FILE, usuarios);
+      sendJson(res, 200, { ok: true, message: 'Perfil guardado correctamente.' });
+    } catch (error) {
+      sendJson(res, 500, { message: 'No se pudo guardar el perfil.', error: error.message });
     }
     return;
   }
