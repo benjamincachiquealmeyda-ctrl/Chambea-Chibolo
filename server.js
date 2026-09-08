@@ -70,6 +70,30 @@ function toPublicRequest(request) {
   return publicRequest;
 }
 
+function getSmtpConfig() {
+  const port = Number(process.env.SMTP_PORT || 465);
+  const password = String(process.env.SMTP_PASS || '').replace(/\s+/g, '');
+  const secureValue = String(process.env.SMTP_SECURE || '').trim().toLowerCase();
+
+  return {
+    host: String(process.env.SMTP_HOST || 'smtp.gmail.com').trim(),
+    port,
+    secure: secureValue ? secureValue === 'true' : port === 465,
+    user: String(process.env.SMTP_USER || '').trim(),
+    password
+  };
+}
+
+function getMailErrorMessage(error) {
+  if (error?.code === 'EAUTH' || error?.responseCode === 535) {
+    return 'Gmail rechazó la autenticación. Revisa SMTP_USER y usa una contraseña de aplicación válida en SMTP_PASS.';
+  }
+  if (error?.code === 'ETIMEDOUT' || error?.code === 'ECONNECTION' || error?.code === 'ESOCKET') {
+    return 'No se pudo conectar con Gmail. Revisa SMTP_HOST, SMTP_PORT y SMTP_SECURE.';
+  }
+  return 'No se pudo enviar el reporte. Revisa los logs de Render para ver el código del error.';
+}
+
 function normalizeUser(value) {
   return String(value || '').trim().toLowerCase();
 }
@@ -289,30 +313,36 @@ const server = http.createServer(async (req, res) => {
       const email = String(data.email || '').trim();
       const type = String(data.type || '').trim();
       const message = String(data.message || '').trim();
-      const supportEmail = process.env.SUPPORT_EMAIL || 'benjamin.cachique.almeyda@gmail.com';
+      const supportEmail = String(process.env.SUPPORT_EMAIL || '').trim();
+      const smtp = getSmtpConfig();
 
-      if (!name || !email || !type || !message) {
+      if (!name || !email || !type || !message || !supportEmail) {
         sendJson(res, 400, { message: 'Completa todos los campos del formulario.' });
         return;
       }
 
-      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      if (!smtp.user || !smtp.password) {
         sendJson(res, 503, { message: 'Falta configurar el correo SMTP del servidor.' });
         return;
       }
 
       const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: Number(process.env.SMTP_PORT || 465),
-        secure: String(process.env.SMTP_PORT || 465) === '465',
+        host: smtp.host,
+        port: smtp.port,
+        secure: smtp.secure,
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
         auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS
+          user: smtp.user,
+          pass: smtp.password
         }
       });
 
+      await transporter.verify();
+
       await transporter.sendMail({
-        from: process.env.SMTP_USER,
+        from: smtp.user,
         to: supportEmail,
         replyTo: email,
         subject: `${type} - Chambea Chibolo`,
@@ -321,7 +351,13 @@ const server = http.createServer(async (req, res) => {
 
       sendJson(res, 200, { ok: true, message: 'Reporte enviado correctamente.' });
     } catch (error) {
-      sendJson(res, 500, { message: 'No se pudo enviar el reporte.', error: error.message });
+      console.error('Error SMTP:', {
+        code: error.code,
+        responseCode: error.responseCode,
+        command: error.command,
+        message: error.message
+      });
+      sendJson(res, 502, { message: getMailErrorMessage(error) });
     }
     return;
   }
