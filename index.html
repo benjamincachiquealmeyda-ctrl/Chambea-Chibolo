@@ -2181,13 +2181,11 @@
               <article class="job-card" data-request-id="${escapeAttribute(job.id || job.fecha || job.nombre || job.title)}" data-request-name="${escapeAttribute(job.nombre || job.title)}" data-request-creator="${escapeAttribute(recipientName)}" data-request-type="${escapeAttribute(job.tipo || 'trabajador')}" data-request-message="${escapeAttribute(job.description || job.mensaje || '')}" data-request-extra="${escapeAttribute(job.location || job.region || '')}">
                 <div class="tag-row">
                   <span class="job-type">${job.type}</span>
-                  <span class="job-price">${job.pay}</span>
                 </div>
 
                 <h3>${job.title}</h3>
 
                 <div class="job-meta">
-                  <span>${job.country}</span>
                   <span>${job.location}</span>
                   <span>${job.hours}</span>
                 </div>
