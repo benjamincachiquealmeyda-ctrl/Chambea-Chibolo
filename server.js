@@ -94,6 +94,62 @@ function getMailErrorMessage(error) {
   return 'No se pudo enviar el reporte. Revisa los logs de Render para ver el código del error.';
 }
 
+async function sendSupportEmail({ name, email, type, message, supportEmail }) {
+  const emailText = `Nombre: ${name}\nCorreo de respuesta: ${email}\nMotivo: ${type}\n\n${message}`;
+  const resendApiKey = String(process.env.RESEND_API_KEY || '').trim();
+
+  if (resendApiKey) {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: process.env.RESEND_FROM || 'Chambea Chibolo <onboarding@resend.dev>',
+        to: [supportEmail],
+        reply_to: email,
+        subject: `${type} - Chambea Chibolo`,
+        text: emailText
+      })
+    });
+
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      const error = new Error(result.message || 'Resend rechazó el correo.');
+      error.code = 'RESEND_ERROR';
+      throw error;
+    }
+    return;
+  }
+
+  const smtp = getSmtpConfig();
+  if (!smtp.user || !smtp.password) {
+    const error = new Error('Falta configurar RESEND_API_KEY o las variables SMTP.');
+    error.code = 'MAIL_CONFIG';
+    throw error;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: smtp.host,
+    port: smtp.port,
+    secure: smtp.secure,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+    auth: { user: smtp.user, pass: smtp.password }
+  });
+
+  await transporter.verify();
+  await transporter.sendMail({
+    from: smtp.user,
+    to: supportEmail,
+    replyTo: email,
+    subject: `${type} - Chambea Chibolo`,
+    text: emailText
+  });
+}
+
 function normalizeUser(value) {
   return String(value || '').trim().toLowerCase();
 }
@@ -314,40 +370,13 @@ const server = http.createServer(async (req, res) => {
       const type = String(data.type || '').trim();
       const message = String(data.message || '').trim();
       const supportEmail = String(process.env.SUPPORT_EMAIL || '').trim();
-      const smtp = getSmtpConfig();
 
       if (!name || !email || !type || !message || !supportEmail) {
         sendJson(res, 400, { message: 'Completa todos los campos del formulario.' });
         return;
       }
 
-      if (!smtp.user || !smtp.password) {
-        sendJson(res, 503, { message: 'Falta configurar el correo SMTP del servidor.' });
-        return;
-      }
-
-      const transporter = nodemailer.createTransport({
-        host: smtp.host,
-        port: smtp.port,
-        secure: smtp.secure,
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 15000,
-        auth: {
-          user: smtp.user,
-          pass: smtp.password
-        }
-      });
-
-      await transporter.verify();
-
-      await transporter.sendMail({
-        from: smtp.user,
-        to: supportEmail,
-        replyTo: email,
-        subject: `${type} - Chambea Chibolo`,
-        text: `Nombre: ${name}\nCorreo de respuesta: ${email}\nMotivo: ${type}\n\n${message}`
-      });
+      await sendSupportEmail({ name, email, type, message, supportEmail });
 
       sendJson(res, 200, { ok: true, message: 'Reporte enviado correctamente.' });
     } catch (error) {
@@ -357,7 +386,12 @@ const server = http.createServer(async (req, res) => {
         command: error.command,
         message: error.message
       });
-      sendJson(res, 502, { message: getMailErrorMessage(error) });
+      const message = error.code === 'RESEND_ERROR'
+        ? `El servicio de correo rechazó el mensaje: ${error.message}`
+        : error.code === 'MAIL_CONFIG'
+          ? 'Falta configurar RESEND_API_KEY en Render.'
+          : getMailErrorMessage(error);
+      sendJson(res, 502, { message });
     }
     return;
   }
