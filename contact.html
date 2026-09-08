@@ -79,11 +79,11 @@
           <p>Cuéntanos tu queja, duda o error. Tu mensaje será enviado al equipo de Chambea Chibolo.</p>
         </section>
         <section class="form-panel">
-          <form id="supportForm">
+          <form id="supportForm" autocomplete="off" novalidate>
             <label for="supportName">Tu nombre</label>
-            <input id="supportName" name="name" type="text" placeholder="Escribe tu nombre" required />
+            <input id="supportName" name="name" type="text" autocomplete="off" placeholder="Escribe tu nombre" required />
             <label for="supportEmail">Tu correo</label>
-            <input id="supportEmail" name="email" type="email" placeholder="tucorreo@ejemplo.com" required />
+            <input id="supportEmail" name="email" type="email" autocomplete="off" placeholder="tucorreo@ejemplo.com" required />
             <label for="supportType">Motivo</label>
             <select id="supportType" name="type" required>
               <option value="">Selecciona una opción</option>
@@ -93,7 +93,7 @@
               <option value="Otro">Otro</option>
             </select>
             <label for="supportMessage">Mensaje</label>
-            <textarea id="supportMessage" name="message" placeholder="Describe lo ocurrido" required></textarea>
+            <textarea id="supportMessage" name="message" autocomplete="off" placeholder="Describe lo ocurrido" required></textarea>
             <button class="btn btn-primary" type="submit">Enviar a soporte</button>
             <p class="status" id="supportStatus" aria-live="polite"></p>
           </form>
@@ -104,21 +104,31 @@
       <script>
       const supportForm = document.getElementById('supportForm');
       const supportStatus = document.getElementById('supportStatus');
+
       supportForm.addEventListener('submit', async (event) => {
         event.preventDefault();
+        if (!supportForm.reportValidity()) return;
+
+        const submitButton = supportForm.querySelector('button[type="submit"]');
+        const formData = Object.fromEntries(new FormData(supportForm).entries());
+        submitButton.disabled = true;
         supportStatus.textContent = 'Enviando reporte...';
+
         try {
           const response = await fetch('/api/contacto', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(Object.fromEntries(new FormData(supportForm).entries()))
+            body: JSON.stringify(formData),
+            cache: 'no-store'
           });
-          const result = await response.json();
-          if (!response.ok) throw new Error(result.error || result.message || 'No se pudo enviar el reporte.');
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.message || 'No se pudo enviar el reporte.');
           supportForm.reset();
           supportStatus.textContent = 'Reporte enviado correctamente a soporte.';
         } catch (error) {
           supportStatus.textContent = error.message || 'No se pudo enviar el reporte.';
+        } finally {
+          submitButton.disabled = false;
         }
       });
     </script>

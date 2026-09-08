@@ -1487,16 +1487,16 @@
         <p>Confirma tus datos para entrar a Chambea Chibolo.</p>
         <div class="login-fields">
           <label for="loginName">Nombre de usuario
-            <input id="loginName" type="text" placeholder="Ej: María López" required />
+            <input id="loginName" type="text" autocomplete="off" placeholder="Ej: María López" required />
           </label>
           <label for="loginGoogle">Cuenta de Google
-            <input id="loginGoogle" type="email" placeholder="Ej: maria@gmail.com" required />
+            <input id="loginGoogle" type="email" autocomplete="off" placeholder="Ej: maria@gmail.com" required />
           </label>
           <label for="loginAge">Edad
-            <input id="loginAge" type="number" min="13" max="99" placeholder="Ej: 17" required />
+            <input id="loginAge" type="number" autocomplete="off" min="13" max="99" placeholder="Ej: 17" required />
           </label>
           <label for="loginCity">Ciudad o distrito
-            <input id="loginCity" type="text" placeholder="Ej: Lima, Miraflores" required />
+            <input id="loginCity" type="text" autocomplete="off" placeholder="Ej: Lima, Miraflores" required />
           </label>
           <button class="btn btn-primary" type="submit">Entrar</button>
           <p id="loginStatus" style="margin: 0; min-height: 20px; color: var(--muted); font-size: 0.9rem;"></p>
@@ -1661,16 +1661,16 @@
               <form class="hire-form" id="hireForm">
                 <h3>Publica tu necesidad</h3>
                 <label for="empresaNombre">Nombre del negocio</label>
-                <input id="empresaNombre" name="empresaNombre" type="text" placeholder="Ej: Café Sol" required />
+                <input id="empresaNombre" name="empresaNombre" type="text" autocomplete="off" placeholder="Ej: Café Sol" required />
 
                 <label for="empresaRubro">Rubro</label>
-                <input id="empresaRubro" name="empresaRubro" type="text" placeholder="Ej: restaurante, tienda, limpieza, servicios" required />
+                <input id="empresaRubro" name="empresaRubro" type="text" autocomplete="off" placeholder="Ej: restaurante, tienda, limpieza, servicios" required />
 
                 <label for="empresaRegion">Región</label>
-                <input id="empresaRegion" name="empresaRegion" type="text" list="peruRegions" placeholder="Escribe o elige una región" required />
+                <input id="empresaRegion" name="empresaRegion" type="text" autocomplete="off" list="peruRegions" placeholder="Escribe o elige una región" required />
 
                 <label for="empresaDistrito">Distrito</label>
-                <input id="empresaDistrito" name="empresaDistrito" type="text" list="peruDistricts" placeholder="Escribe o elige un distrito" required />
+                <input id="empresaDistrito" name="empresaDistrito" type="text" autocomplete="off" list="peruDistricts" placeholder="Escribe o elige un distrito" required />
 
                 <label for="empresaHorario">Horario</label>
                 <select id="empresaHorario" name="empresaHorario">
@@ -1681,7 +1681,7 @@
                 </select>
 
                 <label for="empresaMensaje">Qué necesitas</label>
-                <textarea id="empresaMensaje" name="empresaMensaje" placeholder="Ej: Necesitamos una persona para atención al cliente y apoyo en caja." required></textarea>
+                <textarea id="empresaMensaje" name="empresaMensaje" autocomplete="off" placeholder="Ej: Necesitamos una persona para atención al cliente y apoyo en caja." required></textarea>
 
                 <button class="btn btn-primary" type="submit">Enviar solicitud</button>
                 <p id="saveStatus" style="margin: 14px 0 0; color: var(--muted); font-size: 0.9rem; min-height: 22px;"></p>
@@ -1900,6 +1900,12 @@
       const jobs = [];
       let catalogData = [];
       const notificationsKey = 'chambeaNotifications';
+      const privateStorage = window.sessionStorage;
+
+      // El perfil anterior se guardaba de forma permanente y podía reaparecer en otra cuenta.
+      localStorage.removeItem('chambeaUserProfile');
+      localStorage.removeItem('chambeaChatName');
+      localStorage.removeItem(notificationsKey);
 
       function getApiBase() {
         const currentOrigin = window.location.origin || 'http://localhost:3000';
@@ -1986,14 +1992,14 @@
 
       function getNotifications() {
         try {
-          return JSON.parse(localStorage.getItem(notificationsKey) || '[]');
+          return JSON.parse(privateStorage.getItem(notificationsKey) || '[]');
         } catch (error) {
           return [];
         }
       }
 
       function saveNotifications(notifications) {
-        localStorage.setItem(notificationsKey, JSON.stringify(notifications));
+        privateStorage.setItem(notificationsKey, JSON.stringify(notifications));
       }
 
       function notifyAcceptedRequest(companyName, workerName, jobTitle) {
@@ -2013,7 +2019,7 @@
       }
 
       function canDeleteRequest(request) {
-        const currentUser = localStorage.getItem('chambeaChatName') || '';
+        const currentUser = privateStorage.getItem('chambeaChatName') || '';
         const creator = String(request?.createdBy || request?.nombre || '').trim();
         return creator && currentUser && creator === currentUser;
       }
@@ -2025,7 +2031,7 @@
         try {
           const response = await fetch(`${getApiBase()}/api/solicitudes/${encodeURIComponent(id)}`, {
             method: 'DELETE',
-            headers: { 'X-User-Name': localStorage.getItem('chambeaChatName') || '' }
+            headers: { 'X-User-Name': privateStorage.getItem('chambeaChatName') || '' }
           });
           const result = await response.json().catch(() => ({}));
 
@@ -2312,14 +2318,14 @@
       const loginForm = document.getElementById('loginForm');
       const loginStatus = document.getElementById('loginStatus');
       const loginProfileKey = 'chambeaUserProfile';
-      const savedProfile = JSON.parse(localStorage.getItem(loginProfileKey) || 'null');
-      let storedName = (localStorage.getItem('chambeaChatName') || '').trim();
+      const savedProfile = null;
+      let storedName = (privateStorage.getItem('chambeaChatName') || '').trim();
 
       function setUserName(name) {
         const cleaned = String(name || '').trim();
         if (!cleaned) return false;
         storedName = cleaned;
-        localStorage.setItem('chambeaChatName', cleaned);
+        privateStorage.setItem('chambeaChatName', cleaned);
         if (deviceNameLabel) {
           deviceNameLabel.textContent = cleaned;
         }
@@ -2340,7 +2346,7 @@
       }
 
       function closeLoginGate(profile) {
-        localStorage.setItem(loginProfileKey, JSON.stringify(profile));
+        privateStorage.setItem(loginProfileKey, JSON.stringify(profile));
         setUserName(profile.name);
         if (loginGate) {
           loginGate.classList.add('is-hidden');
@@ -2853,7 +2859,6 @@
           id: `empresa-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
           tipo: 'empresa',
           nombre: document.getElementById('empresaNombre').value.trim(),
-          cuentaGoogle: JSON.parse(localStorage.getItem(loginProfileKey) || '{}').google || '',
           rubro: document.getElementById('empresaRubro').value.trim(),
           region: document.getElementById('empresaRegion').value,
           distrito: document.getElementById('empresaDistrito').value.trim(),

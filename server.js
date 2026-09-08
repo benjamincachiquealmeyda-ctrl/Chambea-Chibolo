@@ -62,6 +62,14 @@ function writeJson(filePath, data) {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
 }
 
+function toPublicRequest(request) {
+  const publicRequest = { ...request };
+  delete publicRequest.cuentaGoogle;
+  delete publicRequest.email;
+  delete publicRequest.correo;
+  return publicRequest;
+}
+
 function normalizeUser(value) {
   return String(value || '').trim().toLowerCase();
 }
@@ -152,7 +160,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && req.url === '/api/solicitudes') {
     try {
       const solicitudes = readJson(DATA_FILE);
-      sendJson(res, 200, solicitudes);
+      sendJson(res, 200, solicitudes.map(toPublicRequest));
     } catch (error) {
       sendJson(res, 500, { message: 'No se pudieron leer las solicitudes.' });
     }
@@ -175,26 +183,34 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      if (isEmpresa && (!data.nombre || !data.cuentaGoogle || !data.ciudad || !data.mensaje)) {
+      if (isEmpresa && (!data.nombre || !data.ciudad || !data.mensaje)) {
         sendJson(res, 400, { message: 'Faltan campos obligatorios de empresa.' });
         return;
       }
 
-      if (isTrabajador && (!data.nombre || !data.cuentaGoogle || !data.distrito || !data.mensaje)) {
+      if (isTrabajador && (!data.nombre || !data.distrito || !data.mensaje)) {
         sendJson(res, 400, { message: 'Faltan campos obligatorios de trabajador.' });
         return;
       }
 
       const solicitudes = readJson(DATA_FILE);
       const record = {
-        ...data,
+        tipo: data.tipo,
+        id: data.id || `req-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+        nombre: String(data.nombre || '').trim(),
+        rubro: String(data.rubro || '').trim(),
+        region: String(data.region || '').trim(),
+        distrito: String(data.distrito || '').trim(),
+        ciudad: String(data.ciudad || '').trim(),
+        mensaje: String(data.mensaje || '').trim(),
+        horario: String(data.horario || '').trim(),
         createdBy: String(data.createdBy || data.nombre || '').trim(),
-        id: data.id || `req-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`
+        fecha: data.fecha || new Date().toISOString()
       };
 
       solicitudes.push(record);
       writeJson(DATA_FILE, solicitudes);
-      broadcastUpdate('catalog', { requests: solicitudes });
+      broadcastUpdate('catalog', { requests: solicitudes.map(toPublicRequest) });
 
       sendJson(res, 200, { ok: true, message: 'Solicitud guardada correctamente.', data: record });
     } catch (error) {
@@ -246,7 +262,7 @@ const server = http.createServer(async (req, res) => {
         writeJson(CHAT_FILE, mensajesRestantes);
         broadcastUpdate('chat', { messages: mensajesRestantes });
       }
-      broadcastUpdate('catalog', { requests: solicitudes });
+      broadcastUpdate('catalog', { requests: solicitudes.map(toPublicRequest) });
       sendJson(res, 200, { ok: true, message: 'Solicitud eliminada.', data: deleted });
     } catch (error) {
       sendJson(res, 500, { message: 'No se pudo eliminar la solicitud.', error: error.message });
