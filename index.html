@@ -2364,6 +2364,18 @@
         loadRecentMessages();
       }
 
+      async function saveProfileToServer(profile) {
+        const response = await fetch(`${getApiBase()}/api/usuarios`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(profile)
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(result.message || 'No se pudo guardar el perfil.');
+        }
+      }
+
       if (savedProfile) {
         document.getElementById('loginName').value = savedProfile.name || '';
         document.getElementById('loginGoogle').value = savedProfile.google || '';
@@ -2372,6 +2384,9 @@
       }
 
       if (savedProfile?.name && savedProfile?.google) {
+        saveProfileToServer(savedProfile).catch((error) => {
+          console.warn('No se pudo sincronizar el perfil guardado.', error);
+        });
         closeLoginGate(savedProfile);
       }
 
@@ -2392,13 +2407,7 @@
 
           if (loginStatus) loginStatus.textContent = 'Guardando perfil...';
           try {
-            const response = await fetch(`${getApiBase()}/api/usuarios`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(profile)
-            });
-            const result = await response.json().catch(() => ({}));
-            if (!response.ok) throw new Error(result.message || 'No se pudo guardar el perfil.');
+            await saveProfileToServer(profile);
             closeLoginGate(profile);
           } catch (error) {
             if (loginStatus) loginStatus.textContent = error.message || 'No se pudo guardar el perfil.';
