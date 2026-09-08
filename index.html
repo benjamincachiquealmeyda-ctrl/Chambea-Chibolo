@@ -1737,12 +1737,17 @@
                         <strong>Estado</strong>
                         <span id="profileState">Conectado</span>
                       </div>
+                      <div>
+                        <strong>Correo privado</strong>
+                        <span id="profileEmail">No registrado</span>
+                      </div>
                     </div>
 
                     <div class="profile-login" style="margin-top: 18px; display: grid; gap: 10px;">
                       <label for="profileUserName" style="font-weight: 700; color: var(--muted);">Usuario</label>
                       <input id="profileUserName" type="text" placeholder="Ej: María López" style="padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;" />
                       <button class="btn btn-secondary" id="saveProfileNameBtn" type="button">Guardar perfil</button>
+                      <button class="btn btn-secondary" id="changeAccountBtn" type="button">Cambiar cuenta</button>
                     </div>
 
                     <div class="profile-actions">
@@ -1900,12 +1905,7 @@
       const jobs = [];
       let catalogData = [];
       const notificationsKey = 'chambeaNotifications';
-      const privateStorage = window.sessionStorage;
-
-      // El perfil anterior se guardaba de forma permanente y podía reaparecer en otra cuenta.
-      localStorage.removeItem('chambeaUserProfile');
-      localStorage.removeItem('chambeaChatName');
-      localStorage.removeItem(notificationsKey);
+      const privateStorage = window.localStorage;
 
       function getApiBase() {
         const currentOrigin = window.location.origin || 'http://localhost:3000';
@@ -2313,12 +2313,19 @@
       const chatSubtitle = document.getElementById('chatSubtitle');
 
       const profileUserName = document.getElementById('profileUserName');
+      const profileEmail = document.getElementById('profileEmail');
       const saveProfileNameBtn = document.getElementById('saveProfileNameBtn');
       const loginGate = document.getElementById('loginGate');
       const loginForm = document.getElementById('loginForm');
       const loginStatus = document.getElementById('loginStatus');
+      const changeAccountBtn = document.getElementById('changeAccountBtn');
       const loginProfileKey = 'chambeaUserProfile';
-      const savedProfile = null;
+      let savedProfile = null;
+      try {
+        savedProfile = JSON.parse(privateStorage.getItem(loginProfileKey) || 'null');
+      } catch (error) {
+        privateStorage.removeItem(loginProfileKey);
+      }
       let storedName = (privateStorage.getItem('chambeaChatName') || '').trim();
 
       function setUserName(name) {
@@ -2348,6 +2355,9 @@
       function closeLoginGate(profile) {
         privateStorage.setItem(loginProfileKey, JSON.stringify(profile));
         setUserName(profile.name);
+        if (profileEmail) {
+          profileEmail.textContent = profile.google || 'No registrado';
+        }
         if (loginGate) {
           loginGate.classList.add('is-hidden');
         }
@@ -2382,6 +2392,15 @@
           }
 
           closeLoginGate(profile);
+        });
+      }
+
+      if (changeAccountBtn) {
+        changeAccountBtn.addEventListener('click', () => {
+          privateStorage.removeItem(loginProfileKey);
+          privateStorage.removeItem('chambeaChatName');
+          privateStorage.removeItem(notificationsKey);
+          window.location.reload();
         });
       }
 
