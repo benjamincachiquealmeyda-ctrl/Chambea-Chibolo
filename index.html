@@ -1905,6 +1905,15 @@
       let catalogData = [];
       const notificationsKey = 'chambeaNotifications';
       const privateStorage = window.localStorage;
+      const sessionVersionKey = 'chambeaSessionVersion';
+      const currentSessionVersion = 'reset-2026-09-08';
+
+      if (privateStorage.getItem(sessionVersionKey) !== currentSessionVersion) {
+        privateStorage.removeItem('chambeaUserProfile');
+        privateStorage.removeItem('chambeaChatName');
+        privateStorage.removeItem(notificationsKey);
+        privateStorage.setItem(sessionVersionKey, currentSessionVersion);
+      }
 
       function getApiBase() {
         const currentOrigin = window.location.origin || 'http://localhost:3000';
