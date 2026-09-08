@@ -693,6 +693,13 @@
         color: rgba(255,255,255,0.8);
       }
 
+      .job-rubro {
+        display: block;
+        margin-top: 12px;
+        color: rgba(255,255,255,0.82);
+        font-size: 0.88rem;
+      }
+
       .job-card .job-cta {
         background: rgba(255,255,255,0.14);
         border: 1px solid rgba(255,255,255,0.2);
@@ -1437,6 +1444,43 @@
           grid-template-columns: 1fr;
           padding-left: 16px;
           padding-right: 16px;
+          gap: 12px;
+        }
+
+        .job-card {
+          min-height: 0;
+          padding: 15px;
+        }
+
+        .job-card .tag-row {
+          margin-bottom: 12px;
+        }
+
+        .job-card h3 {
+          margin-bottom: 8px;
+          font-size: 1.25rem;
+          line-height: 1.15;
+        }
+
+        .job-card p {
+          margin-bottom: 10px;
+          font-size: 0.92rem;
+          line-height: 1.45;
+        }
+
+        .job-card .job-meta {
+          gap: 6px;
+          margin-bottom: 10px;
+          font-size: 0.78rem;
+        }
+
+        .job-card .job-meta span {
+          padding: 5px 7px;
+        }
+
+        .job-rubro {
+          margin-top: 9px;
+          font-size: 0.8rem;
         }
 
         .jobs-top,
@@ -1944,7 +1988,7 @@
           const region = isEmpresa ? (request.region || request.ciudad || 'Sin región') : (request.region || 'Sin región');
           const district = isEmpresa ? (request.distrito || '') : (request.distrito || '');
           const description = request.mensaje || 'Sin descripción.';
-          const title = isEmpresa ? `Necesita: ${category}` : category;
+          const title = isEmpresa ? 'Se necesita' : category;
           const location = isEmpresa ? `${region}${district ? ` / ${district}` : ''}` : `${region}${district ? ` / ${district}` : ''}`;
 
           return {
@@ -2126,7 +2170,7 @@
                 <p>${job.description}</p>
 
                 <div class="job-footer">
-                  <small>${job.category}</small>
+                  <small class="job-rubro">Rubro: ${job.category}</small>
                   ${job.tipo === 'empresa'
                     ? `<div style="display:flex; gap:8px; flex-wrap: wrap; justify-content:flex-end;">${deleteButton}</div>`
                     : '<a class="job-cta" href="/contacto">Aplicar</a>'}
