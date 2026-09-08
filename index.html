@@ -599,14 +599,14 @@
 
       .jobs-grid {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 18px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
         padding: 22px 28px 28px;
       }
 
       .job-card {
         position: relative;
-        min-height: 280px;
+        min-height: 430px;
         background: linear-gradient(180deg, rgba(17,17,17,0.15), rgba(17,17,17,0.75)), linear-gradient(135deg, #ff8c42, #3d7af4);
         border: 1px solid rgba(255,255,255,0.14);
         border-radius: 20px;
@@ -616,6 +616,15 @@
         cursor: pointer;
         box-shadow: 0 18px 34px rgba(20, 22, 28, 0.18);
         transition: transform 0.18s ease, box-shadow 0.18s ease;
+      }
+
+      .job-card-image {
+        width: calc(100% + 36px);
+        height: 190px;
+        margin: -18px -18px 20px;
+        object-fit: cover;
+        display: block;
+        background: rgba(255,255,255,0.12);
       }
 
       .job-card:hover {
@@ -650,6 +659,7 @@
         margin: 0 0 14px;
         color: rgba(255,255,255,0.85);
         line-height: 1.65;
+        overflow-wrap: anywhere;
       }
 
       .job-card .job-meta {
@@ -1422,6 +1432,12 @@
           padding: 15px;
         }
 
+        .job-card-image {
+          width: calc(100% + 30px);
+          height: 170px;
+          margin: -15px -15px 16px;
+        }
+
         .job-card .tag-row {
           margin-bottom: 12px;
         }
@@ -1723,9 +1739,6 @@
                 <label for="empresaNombre">Nombre del negocio</label>
                 <input id="empresaNombre" name="empresaNombre" type="text" autocomplete="off" placeholder="Ej: Café Sol" required />
 
-                <label for="empresaRuc">RUC de la empresa</label>
-                <input id="empresaRuc" name="empresaRuc" type="text" inputmode="numeric" autocomplete="off" maxlength="11" pattern="[0-9]{11}" placeholder="Ej: 20123456789" required />
-
                 <label for="empresaRubro">Rubro</label>
                 <input id="empresaRubro" name="empresaRubro" type="text" autocomplete="off" placeholder="Ej: restaurante, tienda, limpieza, servicios" required />
 
@@ -1734,6 +1747,9 @@
 
                 <label for="empresaDistrito">Distrito</label>
                 <input id="empresaDistrito" name="empresaDistrito" type="text" autocomplete="off" list="peruDistricts" placeholder="Escribe o elige un distrito" required />
+
+                <label for="empresaDireccion">Dirección específica</label>
+                <input id="empresaDireccion" name="empresaDireccion" type="text" autocomplete="off" placeholder="Ej: Av. Arequipa 123, frente al parque" required />
 
                 <label for="empresaHorario">Horario</label>
                 <select id="empresaHorario" name="empresaHorario">
@@ -1744,7 +1760,11 @@
                 </select>
 
                 <label for="empresaMensaje">Qué necesitas</label>
-                <textarea id="empresaMensaje" name="empresaMensaje" autocomplete="off" placeholder="Ej: Necesitamos una persona para atención al cliente y apoyo en caja." required></textarea>
+                <textarea id="empresaMensaje" name="empresaMensaje" autocomplete="off" minlength="30" placeholder="Describe el trabajo con detalle: tareas, requisitos, experiencia, pago, beneficios y cómo será el día a día." required></textarea>
+
+                <label for="empresaFoto">Foto del local</label>
+                <input id="empresaFoto" name="empresaFoto" type="file" accept="image/jpeg,image/png,image/webp" />
+                <small style="color: var(--muted);">Opcional. Máximo 2 MB.</small>
 
                 <button class="btn btn-primary" type="submit">Enviar solicitud</button>
                 <p id="saveStatus" style="margin: 14px 0 0; color: var(--muted); font-size: 0.9rem; min-height: 22px;"></p>
@@ -2182,6 +2202,7 @@
 
             return `
               <article class="job-card" data-request-id="${escapeAttribute(job.id || job.fecha || job.nombre || job.title)}" data-request-name="${escapeAttribute(job.nombre || job.title)}" data-request-creator="${escapeAttribute(recipientName)}" data-request-type="${escapeAttribute(job.tipo || 'trabajador')}" data-request-message="${escapeAttribute(job.description || job.mensaje || '')}" data-request-extra="${escapeAttribute(job.location || job.region || '')}">
+                ${job.fotoLocal ? `<img class="job-card-image" src="${escapeAttribute(job.fotoLocal)}" alt="Foto del local de ${escapeAttribute(job.nombre)}">` : ''}
                 <div class="tag-row">
                   <span class="job-type">${job.type}</span>
                 </div>
@@ -2195,9 +2216,7 @@
 
                 <p>${job.description}</p>
 
-                ${job.tipo === 'empresa' && job.ruc
-                  ? `<small class="job-rubro">RUC: ${job.ruc} · ${job.verificacionRuc === 'verificado' ? 'RUC verificado' : job.verificacionRuc === 'rechazado' ? 'RUC no verificado' : 'RUC pendiente de verificación'}</small>`
-                  : ''}
+                ${job.tipo === 'empresa' && job.direccion ? `<small class="job-rubro">Dirección: ${escapeAttribute(job.direccion)}</small>` : ''}
 
                 <div class="job-footer">
                   <small class="job-rubro">Rubro: ${job.category}</small>
@@ -2973,10 +2992,10 @@
           id: `empresa-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
           tipo: 'empresa',
           nombre: document.getElementById('empresaNombre').value.trim(),
-          ruc: document.getElementById('empresaRuc').value.replace(/\D/g, ''),
           rubro: document.getElementById('empresaRubro').value.trim(),
           region: document.getElementById('empresaRegion').value,
           distrito: document.getElementById('empresaDistrito').value.trim(),
+          direccion: document.getElementById('empresaDireccion').value.trim(),
           ciudad: document.getElementById('empresaRegion').value,
           mensaje: document.getElementById('empresaMensaje').value.trim(),
           horario: document.getElementById('empresaHorario').value,
@@ -2984,9 +3003,23 @@
           fecha: new Date().toISOString()
         };
 
-        if (!formData.nombre || !/^\d{11}$/.test(formData.ruc) || !formData.region || !formData.distrito || !formData.mensaje) {
+        const photoFile = document.getElementById('empresaFoto').files[0];
+        if (photoFile) {
+          if (photoFile.size > 2 * 1024 * 1024) {
+            if (saveStatus) saveStatus.textContent = 'La foto no puede superar los 2 MB.';
+            return;
+          }
+          formData.fotoLocal = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(photoFile);
+          });
+        }
+
+        if (!formData.nombre || !formData.region || !formData.distrito || !formData.direccion || formData.mensaje.length < 30) {
           if (saveStatus) {
-            saveStatus.textContent = 'Completa todos los campos y coloca un RUC válido de 11 dígitos.';
+            saveStatus.textContent = 'Completa la dirección y escribe una descripción de al menos 30 caracteres.';
           }
           return;
         }

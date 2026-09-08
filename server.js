@@ -69,6 +69,8 @@ function toPublicRequest(request) {
   delete publicRequest.cuentaGoogle;
   delete publicRequest.email;
   delete publicRequest.correo;
+  delete publicRequest.ruc;
+  delete publicRequest.verificacionRuc;
   return publicRequest;
 }
 
@@ -94,29 +96,6 @@ function getMailErrorMessage(error) {
     return 'No se pudo conectar con Gmail. Revisa SMTP_HOST, SMTP_PORT y SMTP_SECURE.';
   }
   return 'No se pudo enviar el reporte. Revisa los logs de Render para ver el código del error.';
-}
-
-async function verifyBusinessRuc(ruc) {
-  const endpoint = String(process.env.SUNAT_API_URL || '').trim();
-  const apiKey = String(process.env.SUNAT_API_KEY || '').trim();
-
-  if (!endpoint || !apiKey) {
-    return { status: 'pendiente', message: 'RUC pendiente de verificación oficial.' };
-  }
-
-  const response = await fetch(`${endpoint.replace(/\/$/, '')}/${encodeURIComponent(ruc)}`, {
-    headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' }
-  });
-  if (!response.ok) {
-    throw new Error(`La API de SUNAT respondió con HTTP ${response.status}.`);
-  }
-
-  const result = await response.json();
-  const valid = result.valid === true || result.success === true || result.estado === 'ACTIVO';
-  return {
-    status: valid ? 'verificado' : 'rechazado',
-    message: valid ? 'RUC verificado.' : 'El RUC no fue validado por la API configurada.'
-  };
 }
 
 async function sendSupportEmail({ name, email, type, message, supportEmail }) {
@@ -326,9 +305,7 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      const ruc = String(data.ruc || '').replace(/\D/g, '');
-
-      if (isEmpresa && (!data.nombre || !/^\d{11}$/.test(ruc) || !data.ciudad || !data.mensaje)) {
+      if (isEmpresa && (!data.nombre || !data.ciudad || !data.direccion || !data.mensaje || String(data.mensaje).trim().length < 30)) {
         sendJson(res, 400, { message: 'Faltan campos obligatorios de empresa.' });
         return;
       }
@@ -338,14 +315,10 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      let rucVerification = { status: 'no aplica', message: '' };
-      if (isEmpresa) {
-        try {
-          rucVerification = await verifyBusinessRuc(ruc);
-        } catch (error) {
-          sendJson(res, 502, { message: 'No se pudo verificar el RUC en este momento.', error: error.message });
-          return;
-        }
+      const photo = String(data.fotoLocal || '').trim();
+      if (isEmpresa && photo && (!photo.startsWith('data:image/') || photo.length > 3 * 1024 * 1024)) {
+        sendJson(res, 400, { message: 'La foto del local no es válida o supera el tamaño permitido.' });
+        return;
       }
 
       const solicitudes = readJson(DATA_FILE);
@@ -353,14 +326,14 @@ const server = http.createServer(async (req, res) => {
         tipo: data.tipo,
         id: data.id || `req-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
         nombre: String(data.nombre || '').trim(),
-        ruc,
-        verificacionRuc: rucVerification.status,
         rubro: String(data.rubro || '').trim(),
         region: String(data.region || '').trim(),
         distrito: String(data.distrito || '').trim(),
+        direccion: String(data.direccion || '').trim(),
         ciudad: String(data.ciudad || '').trim(),
         mensaje: String(data.mensaje || '').trim(),
         horario: String(data.horario || '').trim(),
+        fotoLocal: photo,
         createdBy: String(data.createdBy || data.nombre || '').trim(),
         fecha: data.fecha || new Date().toISOString()
       };
