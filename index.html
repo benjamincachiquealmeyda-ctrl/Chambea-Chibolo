@@ -1988,7 +1988,7 @@
           const region = isEmpresa ? (request.region || request.ciudad || 'Sin región') : (request.region || 'Sin región');
           const district = isEmpresa ? (request.distrito || '') : (request.distrito || '');
           const description = request.mensaje || 'Sin descripción.';
-          const title = isEmpresa ? 'Se necesita' : category;
+          const title = category;
           const location = isEmpresa ? `${region}${district ? ` / ${district}` : ''}` : `${region}${district ? ` / ${district}` : ''}`;
 
           return {
