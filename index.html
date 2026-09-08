@@ -1576,16 +1576,16 @@
 
               <div class="stats">
                 <div class="stat">
-                  <strong>0+</strong>
-                  <span>jóvenes conectados</span>
+                  <strong id="activeRequestsStat">0</strong>
+                  <span>solicitudes activas</span>
                 </div>
                 <div class="stat">
-                  <strong>0+</strong>
+                  <strong id="activeBusinessesStat">0</strong>
                   <span>negocios activos</span>
                 </div>
                 <div class="stat">
-                  <strong>24/7</strong>
-                  <span>acceso</span>
+                  <strong>Siempre</strong>
+                  <span>disponibilidad</span>
                 </div>
               </div>
 
@@ -1964,6 +1964,24 @@
         }
 
         return currentOrigin;
+      }
+
+      async function updateStatsFromCatalog() {
+        try {
+          const response = await fetch(`${getApiBase()}/api/solicitudes`, { cache: 'no-store' });
+          if (!response.ok) return;
+          const requests = await response.json();
+          const entries = Array.isArray(requests) ? requests : [];
+          const requestsStat = document.getElementById('activeRequestsStat');
+          const businessesStat = document.getElementById('activeBusinessesStat');
+
+          if (requestsStat) requestsStat.textContent = String(entries.length);
+          if (businessesStat) {
+            businessesStat.textContent = String(entries.filter((request) => request.tipo === 'empresa').length);
+          }
+        } catch (error) {
+          console.warn('No se pudieron actualizar los indicadores.', error);
+        }
       }
 
       function escapeAttribute(value) {
@@ -3007,6 +3025,7 @@
       });
 
       showCatalogFromRequests();
+      updateStatsFromCatalog();
       if (storedName) {
         loadRequests();
         loadRecentMessages();
