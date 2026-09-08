@@ -96,6 +96,29 @@ function getMailErrorMessage(error) {
   return 'No se pudo enviar el reporte. Revisa los logs de Render para ver el código del error.';
 }
 
+async function verifyBusinessRuc(ruc) {
+  const endpoint = String(process.env.SUNAT_API_URL || '').trim();
+  const apiKey = String(process.env.SUNAT_API_KEY || '').trim();
+
+  if (!endpoint || !apiKey) {
+    return { status: 'pendiente', message: 'RUC pendiente de verificación oficial.' };
+  }
+
+  const response = await fetch(`${endpoint.replace(/\/$/, '')}/${encodeURIComponent(ruc)}`, {
+    headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' }
+  });
+  if (!response.ok) {
+    throw new Error(`La API de SUNAT respondió con HTTP ${response.status}.`);
+  }
+
+  const result = await response.json();
+  const valid = result.valid === true || result.success === true || result.estado === 'ACTIVO';
+  return {
+    status: valid ? 'verificado' : 'rechazado',
+    message: valid ? 'RUC verificado.' : 'El RUC no fue validado por la API configurada.'
+  };
+}
+
 async function sendSupportEmail({ name, email, type, message, supportEmail }) {
   const emailText = `Nombre: ${name}\nCorreo de respuesta: ${email}\nMotivo: ${type}\n\n${message}`;
   const resendApiKey = String(process.env.RESEND_API_KEY || '').trim();
@@ -303,7 +326,9 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      if (isEmpresa && (!data.nombre || !data.ciudad || !data.mensaje)) {
+      const ruc = String(data.ruc || '').replace(/\D/g, '');
+
+      if (isEmpresa && (!data.nombre || !/^\d{11}$/.test(ruc) || !data.ciudad || !data.mensaje)) {
         sendJson(res, 400, { message: 'Faltan campos obligatorios de empresa.' });
         return;
       }
@@ -313,11 +338,23 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      let rucVerification = { status: 'no aplica', message: '' };
+      if (isEmpresa) {
+        try {
+          rucVerification = await verifyBusinessRuc(ruc);
+        } catch (error) {
+          sendJson(res, 502, { message: 'No se pudo verificar el RUC en este momento.', error: error.message });
+          return;
+        }
+      }
+
       const solicitudes = readJson(DATA_FILE);
       const record = {
         tipo: data.tipo,
         id: data.id || `req-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
         nombre: String(data.nombre || '').trim(),
+        ruc,
+        verificacionRuc: rucVerification.status,
         rubro: String(data.rubro || '').trim(),
         region: String(data.region || '').trim(),
         distrito: String(data.distrito || '').trim(),

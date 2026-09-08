@@ -1723,6 +1723,9 @@
                 <label for="empresaNombre">Nombre del negocio</label>
                 <input id="empresaNombre" name="empresaNombre" type="text" autocomplete="off" placeholder="Ej: Café Sol" required />
 
+                <label for="empresaRuc">RUC de la empresa</label>
+                <input id="empresaRuc" name="empresaRuc" type="text" inputmode="numeric" autocomplete="off" maxlength="11" pattern="[0-9]{11}" placeholder="Ej: 20123456789" required />
+
                 <label for="empresaRubro">Rubro</label>
                 <input id="empresaRubro" name="empresaRubro" type="text" autocomplete="off" placeholder="Ej: restaurante, tienda, limpieza, servicios" required />
 
@@ -2191,6 +2194,10 @@
                 </div>
 
                 <p>${job.description}</p>
+
+                ${job.tipo === 'empresa' && job.ruc
+                  ? `<small class="job-rubro">RUC: ${job.ruc} · ${job.verificacionRuc === 'verificado' ? 'RUC verificado' : job.verificacionRuc === 'rechazado' ? 'RUC no verificado' : 'RUC pendiente de verificación'}</small>`
+                  : ''}
 
                 <div class="job-footer">
                   <small class="job-rubro">Rubro: ${job.category}</small>
@@ -2966,6 +2973,7 @@
           id: `empresa-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
           tipo: 'empresa',
           nombre: document.getElementById('empresaNombre').value.trim(),
+          ruc: document.getElementById('empresaRuc').value.replace(/\D/g, ''),
           rubro: document.getElementById('empresaRubro').value.trim(),
           region: document.getElementById('empresaRegion').value,
           distrito: document.getElementById('empresaDistrito').value.trim(),
@@ -2976,9 +2984,9 @@
           fecha: new Date().toISOString()
         };
 
-        if (!formData.nombre || !formData.region || !formData.distrito || !formData.mensaje) {
+        if (!formData.nombre || !/^\d{11}$/.test(formData.ruc) || !formData.region || !formData.distrito || !formData.mensaje) {
           if (saveStatus) {
-            saveStatus.textContent = 'Completa todos los campos antes de enviar.';
+            saveStatus.textContent = 'Completa todos los campos y coloca un RUC válido de 11 dígitos.';
           }
           return;
         }
